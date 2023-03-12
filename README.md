@@ -38,7 +38,6 @@ Example
 
 Prepare
 ```bash
-mv assembly.dll Microsoft.SqlServer.Proxy.dll
 python3 mssqlclient.py $username:$password@$ip_mssql
 SQL> enable_xp_cmdshell
 SQL> enable_ole
