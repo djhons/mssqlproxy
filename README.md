@@ -61,6 +61,35 @@ download file
 ```
 download c:\xx.zip xx.zip
 ```
+Base
+------------
+https://github.com/iptL-F4ck/mssqlproxy/
+
+
+Change
+------------
+217 line of mssqlclient.py
+```
+SET @ip=TRIM(CONVERT(char(15), CONNECTIONPROPERTY('client_net_address')));
+change to
+SET @ip=LTRIM(RTRIM(CONVERT(char(15), CONNECTIONPROPERTY('client_net_address'))));
+```
+103 line of reciclador.cpp
+```
+return 1;
+change to
+return -1;
+```
+
+Why modify
+------------
+mssqlclient.py：在mssql2017之后才新增的TRIM函数，绕过mssql小于2017则会报错，仅在mssql2014测试。
+![image](https://user-images.githubusercontent.com/102639729/224523965-8e22b17f-00ac-4446-9782-f8042c5453ac.png)
+
+reciclador.cpp：如果python脚本意外退出，该dll会陷入死循环从而导致CPU占用100%。
+![image](https://user-images.githubusercontent.com/102639729/224523979-ec109327-d721-415f-9a7c-61e5e62e38d0.png)
+
+
 
 
 License
