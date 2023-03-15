@@ -1,8 +1,8 @@
-﻿/*
-* Copyright (c) 2020 BlackArrow
+/*
+* Copyright (c) 2022 BlackArrow
 *
 * Author:
-*  Pablo Martinez (https://twitter.com/xassiz)
+*  DJ (https://djhons.com)
 *
 */
 
@@ -94,7 +94,7 @@ int socks5_recv_nego(SOCKET fd) {
 		// End-of-transmission mark
 		else if (init[0] == 0x31 && init[1] == 0x41 && init[2] == 0x59) { // Mark: "\x31\x41\x59\x26\x53\x58\x97\x93\x23\x84" (10 bytes)
 			readn(fd, tmp, ARRAY_SIZE(tmp));
-			if (strstr(tmp, "\x26\x53\x58\x97\x93\x23\x84") != NULL){
+			if (strstr(tmp, "\x26\x53\x58\x97\x93\x23\x84") != NULL) {
 				continue;
 			}
 		}
@@ -143,7 +143,7 @@ SOCKET app_connect(void* buf, unsigned short int portnum, SOCKET orig) {
 	char address[16];
 	struct sockaddr_in remote;
 	SOCKET new_fd = INVALID_SOCKET;
-	
+
 	new_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	char* ip = NULL;
@@ -161,14 +161,14 @@ SOCKET app_connect(void* buf, unsigned short int portnum, SOCKET orig) {
 		return -1;
 	}
 	return new_fd;
-	
+
 }
 
 // Request reply
 void socks5_ip_send_response(SOCKET fd, char* ip, unsigned short int port)
 {
 	char response[4] = { VERSION, OK, RESERVED, IP };
-	
+
 	send(fd, response, ARRAY_SIZE(response), 0);
 	send(fd, ip, IPSIZE, 0);
 	send(fd, (char*)&port, sizeof(port), 0);
@@ -216,7 +216,7 @@ void app_socket_pipe(SOCKET fd0, SOCKET fd1)
 int worker(SOCKET fd) {
 	SOCKET inet_fd;
 	int address_type = 0;
-	
+
 	unsigned short int p = 0;
 
 	int res = socks5_recv_nego(fd);
@@ -238,7 +238,7 @@ int worker(SOCKET fd) {
 		if (inet_fd != -1) {
 			socks5_ip_send_response(fd, ip, p);
 			free(ip);
-			
+
 			app_socket_pipe(inet_fd, fd);
 			closesocket(inet_fd);
 		}
@@ -261,7 +261,7 @@ int worker(SOCKET fd) {
 int proxy(SOCKET socks) {
 
 	// Initialization
-	int sendsuccess=send(socks, "Powered by blackarrow.net\n", strlen("Powered by blackarrow.net\n") + 1, 0);
+	int sendsuccess = send(socks, "Powered by blackarrow.net\n", strlen("Powered by blackarrow.net\n") + 1, 0);
 	if (sendsuccess<0) {
 		return sendsuccess;
 	}
@@ -286,41 +286,34 @@ extern "C" __declspec(dllexport) int main(char *client_addr, int client_port) {
 	WSAStartup(MAKEWORD(2, 0), &wsaData);
 
 	int max_socket = 65536;
-	int target = 0;
-
-	// Iterate over all sockets
-	for (i = 1; i < max_socket; i++) { 
+	for (i = 1; i < max_socket; i++) {
 		len = sizeof(sockaddr);
 
 		// Check if it is a socket
 		if (getpeername((SOCKET)i, (SOCKADDR*)&sockaddr, &len) == 0) {
 			if (strcmp(inet_ntoa(sockaddr.sin_addr), client_addr) == 0 && (client_port == 0 || sockaddr.sin_port == htons(client_port))) {
-				target = i;
-				break;
+				SOCKET dup = INVALID_SOCKET;
+				WSAPROTOCOL_INFO sockstate;
+				if (WSADuplicateSocket(i, GetCurrentProcessId(), &sockstate) == 0)
+				{
+					dup = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &sockstate, 0, 0);
+				}
+
+				if (dup == INVALID_SOCKET) {
+					return -1; // exit :(
+				}
+
+				// Close original socket and use the duplicated one
+				closesocket(i);
+
+				int reproxy=proxy(dup);
+				if (reproxy == 0) {
+					closesocket(dup);
+					break;
+				}
 			}
 		}
 	}
-	
-	if (target > 0)
-	{
-		SOCKET dup = INVALID_SOCKET;
-		WSAPROTOCOL_INFO sockstate;
-		if (WSADuplicateSocket(target, GetCurrentProcessId(), &sockstate) == 0)
-		{
-			dup = WSASocket(FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, FROM_PROTOCOL_INFO, &sockstate, 0, 0);
-		}
-
-		if (dup == INVALID_SOCKET) {
-			return -1; // exit :(
-		}
-
-		// Close original socket and use the duplicated one
-		closesocket(target);
-
-		proxy(dup);
-		closesocket(dup);
-	}
-	
 	return 0;
 }
 
@@ -329,8 +322,8 @@ extern "C" __declspec(dllexport) int main(char *client_addr, int client_port) {
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 	switch (fdwReason) {
-		default:
-			break;
+	default:
+		break;
 	}
 	return TRUE;
 }
